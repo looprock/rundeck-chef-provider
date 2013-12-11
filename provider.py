@@ -41,7 +41,7 @@ def logerror(msg):
 		print "ERROR: unable to write to log file!"
 		if os.path.isfile(tmp):
 			os.unlink(tmp)
-		sys.exit(fmsg)
+		sys.exit()
 
 def testxml(file):
 	try:
@@ -74,6 +74,10 @@ try:
 		tags = ""
 		for r in n['roles']:
 			tags += "%s," % r
+			bugme("adding role %s to tags." % r)
+		for t in n['tags']:
+			tags += "%s," % t
+			bugme("adding tag %s to tags." % t)
 		tags = tags + n.chef_environment
 		try:
 			f.write('<node name="%s" type="Node" description="%s" osArch="%s" osFamily="unix" osName="%s" osVersion="%s" tags="%s" username="rundeck" hostname="%s" editUrl="http://chef.vast.com:4040/nodes/%s/edit"/>\n' % (n['fqdn'], n['fqdn'], n['kernel']['machine'], n['platform'], n['platform_version'], tags, n['fqdn'], node))
@@ -95,15 +99,23 @@ if testxml(tmp) == False:
 
 bugme("new provider tmp generated: %s" % tmp)
 
-if filecmp.cmp(destination, tmp) is False:
-	try:
+if os.path.isfile(destination):
+	if filecmp.cmp(destination, tmp) is False:
+		rewrite = True
 		backup = "%s-%s" % (destination, str(timenow))
 		bugme("backing up to: %s" % backup)
 		shutil.copy(destination, backup)
+	else:
+		rewrite = False
+else:
+		rewrite = True
+
+if rewrite == True:
+	try:
 		shutil.move(tmp, destination)
 		bugme("It worked!")
 	except:
 		logerror("issue moving %s to %s!" % (tmp, destination))
 else:
-	bugme("%s and %s are the same. No need to overwrite. All done." % (tmp, destination))
+	bugme("%s will not overwrite %s. All done." % (tmp, destination))
 	os.unlink(tmp)
