@@ -27,21 +27,23 @@ def bugme(msg):
         if debug == True:
                 print "DEBUG: %s" % msg
 
-def logerror(msg):
-	try: 
-		l = open(log, 'a')
-		fmsg = "ERROR: %s" % (msg)
-		bugme(fmsg)
-		l.write("%s %s\n" % (logdate, fmsg))
-		l.close()
-		if os.path.isfile(tmp):
-			os.unlink(tmp)
-		sys.exit()
-	except:
-		print "ERROR: unable to write to log file!"
-		if os.path.isfile(tmp):
-			os.unlink(tmp)
-		sys.exit()
+def logerror(msg, mtype="ERROR", exit=True, deltmp=True ):
+        try:
+                l = open(log, 'a')
+                fmsg = "%s: %s" % (mtype,msg)
+                bugme(fmsg)
+                l.write("%s %s\n" % (logdate, fmsg))
+                l.close()
+                if deltmp == True:
+                        if os.path.isfile(tmp):
+                                os.unlink(tmp)
+                if exit == True:
+                        sys.exit()
+        except:
+                print "ERROR: unable to write to log file!"
+                if os.path.isfile(tmp):
+                        os.unlink(tmp)
+                sys.exit()
 
 def testxml(file):
 	try:
@@ -71,6 +73,18 @@ try:
 	for node in chef.Node.list():
 		n = chef.Node(node)
 		bugme("processing: %s" %  node)
+                try:
+                        n['fqdn']
+                        n['kernel']['machine']
+                        n['platform']
+                        n['platform_version']
+                        n.chef_environment
+                        n['roles']
+                        n['tags']
+                except:
+                        msg = "%s didn't contain required data, skipping!" % str(node)
+                        logerror(msg, mtype="WARNING", exit=False, deltmp=False)
+                        continue
 		tags = ""
 		for r in n['roles']:
 			tags += "%s," % r
